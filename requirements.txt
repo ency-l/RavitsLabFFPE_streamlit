@@ -1,6 +1,5 @@
 streamlit
 pandas
 bcrypt
-re
 gspread
-streamlit_gsheets
+st-gsheets-connection
