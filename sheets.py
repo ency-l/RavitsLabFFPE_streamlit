@@ -50,7 +50,7 @@ else:
         service_account_info = st.secrets["gcp_service_account"]
         #client = gspread.service_account_from_dict(dict(service_account_info))
         from pathlib import Path
-        client = gspread.service_account(filename=Path('ravits-lab-paraffin-blocks-e254d6aa1b19.json')) # type: ignore
+        client = gspread.service_account(filename=Path('.streamlit/ravits-lab-paraffin-blocks-e254d6aa1b19.json')) # type: ignore
         sheet = client.open("Ravits Lab Paraffin Blocks Inventory")
         sheet_guide = sheet.get_worksheet(0)
         sheet_summary=sheet.get_worksheet(1)
