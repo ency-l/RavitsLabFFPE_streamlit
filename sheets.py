@@ -11,7 +11,6 @@ st.set_page_config(
             layout="wide",
             initial_sidebar_state="collapsed",
         )
-# password = 'password123'
 hash_password = st.secrets["app_credentials"]["hashed_password"]
 def check_credentials(password):
     entered_password_bytes = password.encode('utf-8')
@@ -99,6 +98,8 @@ else:
 
     def block_status_style(val):
         val_lower = val.lower() if isinstance(val, str) else ''
+        text_color='#000'
+        background_color=''
         if val_lower=="uncut":
             background_color='background-color: #bdbdbd'
             text_color='color: #303030'
@@ -107,7 +108,6 @@ else:
             text_color='color: #FFF'
         elif val_lower=='low':
             background_color='background-color: #ffcc1e'
-            text_color='color: #000'
         elif val_lower=='used up':
             background_color='background-color: #da0000'
             text_color='color: #FFF'
