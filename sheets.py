@@ -63,7 +63,6 @@ else:
         text_color = ''        # Default value
         if val_lower == "red":
             background_color = 'background-color: #da0000'
-            text_color = 'color: #FFF'
         elif val_lower == 'orange':
             background_color = 'background-color: #ff9966'
             text_color = 'color: #000'
@@ -98,7 +97,7 @@ else:
 
     def block_status_style(val):
         val_lower = val.lower() if isinstance(val, str) else ''
-        text_color='#000'
+        text_color=''
         background_color=''
         if val_lower=="uncut":
             background_color='background-color: #bdbdbd'
@@ -230,12 +229,11 @@ else:
             st.markdown(f":red-badge[No blocks found for the selected filters.]")
         else:
             st.markdown(f":green-badge[Found {len(filtered_data)} blocks.]")
-            st.download_button(
-                "Download List",
-                data=filtered_data.to_csv(index=False).encode('utf-8'),
-                on_click="ignore",
-                key="dl_1"
-            )
+            #st.download_button(
+            #    "Download List",
+            #    data=filtered_data.to_csv(index=False).encode('utf-8'),
+            #    on_click="ignore",
+            #    key="dl_1")
         st.dataframe(
             filtered_data_color,
             column_order=[
@@ -291,12 +289,11 @@ else:
                     #on_select="rerun",
                     #selection_mode='multi-row',
                 )
-            DLButton_Container.download_button(
-                "Download List",
-                data=filtered_data.to_csv(index=False).encode('utf-8'),
-                on_click="ignore",
-                key="dl_2"
-            )
+            #DLButton_Container.download_button(
+            #    "Download List",
+            #    data=filtered_data.to_csv(index=False).encode('utf-8'),
+            #    on_click="ignore",
+            #    key="dl_2")
 
     criterial_filter_tab, case_filter_tab =st.tabs(["Searcg by Criteria", "Look Up Cases"])
 
