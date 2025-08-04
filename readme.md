@@ -9,4 +9,4 @@ The portal is functional.
 TODO:
 1. Finish the inventory database. Self-expanatory.
 2. Finish implementing filters. Currently the "region" filter is only minimally implemented and only supports the most common categories (Cerv/Thor/Lumb/MC).
-3. Potentially integrate data from other spreadsheets (e.g. frozen tissue, main db (once it's hosted online))
+3. Potentially integrate data from other spreadsheets (e.g. frozen tissue, H&E, IHC, main db (once it's hosted online))
