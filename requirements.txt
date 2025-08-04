@@ -1,0 +1,6 @@
+streamlit
+pandas
+bcrypt
+re
+gspread
+streamlit_gsheets
