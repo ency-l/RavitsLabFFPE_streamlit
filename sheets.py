@@ -54,6 +54,7 @@ else:
         sheet_guide = sheet.get_worksheet(0)
         sheet_summary=sheet.get_worksheet(1)
         sheet_detail= sheet.get_worksheet(2)
+        sheet_code=sheet.get_worksheet(3)
         conn = st.connection("ffpe_gsheets", type=GSheetsConnection)
     ################################## Initializing global funcs and  pre-processing data  ############################################
 
@@ -118,7 +119,6 @@ else:
         st.write("Genetics:")
         st.write("Clinical Subtype:")
         st.write("Onset:")
-    
     # preparing all data from the Google Sheets document
     full_list_of_lists = sheet_detail.get_all_values()[1:] #get all values from 'block details' sheet, remove header row ([0])
     mainDataDF = pd.DataFrame(full_list_of_lists, columns=sheet_detail.row_values(1),index=None) #manually assign header values from Gsheet
@@ -136,7 +136,7 @@ else:
     with center:
         st.markdown('''
             # :brain: Ravits Lab FFPE Blocks Inventory  
-            :blue-badge[🚧The database is still not complete. Some blocks have not been logged yet.] ''')
+            :blue-badge[Last Updated:2025-08-07] ''')
     st.divider()    
     c1,c2,c3,c4=st.columns([4,1, 1, 1])
     c1.markdown('''
