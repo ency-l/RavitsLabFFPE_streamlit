@@ -1,6 +1,7 @@
 ################# Setting up environment and fetching data from Google Sheets #################
 import streamlit as st
 import pandas as pd
+import numpy
 import bcrypt
 import re
 import gspread
@@ -21,6 +22,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'login_error' not in st.session_state:
     st.session_state.login_error = False
+st.session_state.logged_in=True #DELETE THIS WHEN COMMITING!!!!!!!!!!!!!!!
 ###############################Show login form if not logged in##########################################
 if not st.session_state.logged_in:
     st.title("Login")
@@ -44,85 +46,108 @@ if not st.session_state.logged_in:
         st.warning("Please try again.")
 ################################Show main interface if logged in##########################################
 else:
-    with st.spinner("Connecting to Google Sheets..."):
+    with st.spinner("Connecting to Google Sheets..."):  #connect to Gsheets and fetch data
         #scope = [ 'https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive' ]      
-        service_account_info = st.secrets["gcp_service_account"]
+        #service_account_info = st.secrets["gcp_service_account"]
         #client = gspread.service_account_from_dict(dict(service_account_info))
         from pathlib import Path
+       # conn = st.connection("ffpe_gsheets", type=GSheetsConnection)        
         client = gspread.service_account(filename=Path('.streamlit/ravits-lab-paraffin-blocks-e254d6aa1b19.json')) # type: ignore
         sheet = client.open("Ravits Lab Paraffin Blocks Inventory")
         sheet_guide = sheet.get_worksheet(0)
         sheet_summary=sheet.get_worksheet(1)
         sheet_detail= sheet.get_worksheet(2)
         sheet_code=sheet.get_worksheet(3)
-        conn = st.connection("ffpe_gsheets", type=GSheetsConnection)
     ################################## Initializing global funcs and  pre-processing data  ############################################
 
-    def block_color_style(val):
-        val_lower = val.lower() if isinstance(val, str) else ''
-        background_color = ''  # Default value
-        text_color = ''        # Default value
-        if val_lower == "red":
-            background_color = 'background-color: #da0000'
-        elif val_lower == 'orange':
-            background_color = 'background-color: #ff9966'
-            text_color = 'color: #000'
-        elif val_lower == 'gold':
-            background_color = 'background-color: #fbc315'
-            text_color = 'color: #000'
-        elif val_lower == 'yellow':
-            background_color = 'background-color: #faf28a'
-            text_color = 'color: #000'
-        elif val_lower == 'green':
-            background_color = 'background-color: #99d3a1'
-            text_color = 'color: #000'
-        elif val_lower == "teal":
-            background_color = 'background-color: #53ada3'
-            text_color = 'color: #000'
-        elif val_lower == "blue":
-            background_color = 'background-color: #afcae7'
-            text_color = 'color: #000'
-        elif val_lower == "purple":
-            background_color = 'background-color: #e78dd5'
-            text_color = 'color: #000'
-        elif val_lower == "pink":
-            background_color = 'background-color: #f6cad9'
-            text_color = 'color: #000'
-        elif val_lower == "gray":
-            background_color = 'background-color: #bdbdbd'
-            text_color = 'color: #000'
-        elif val_lower == "white":
-            background_color = 'background-color: #FFFFFF'
-            text_color = 'color: #000'
-        return f"{background_color}; {text_color if 'text_color' in locals() else ''}"
-
-    def block_status_style(val):
-        val_lower = val.lower() if isinstance(val, str) else ''
-        text_color=''
+    def conditional_cell_colors(row):   #color cells based on block color and status
+        styles=['']*len(row)
+        text_color='color: #000'
         background_color=''
-        if val_lower=="uncut":
-            background_color='background-color: #bdbdbd'
-            text_color='color: #303030'
-        elif val_lower=='cut':
-            background_color='background-color: #009900'
-            text_color='color: #FFF'
-        elif val_lower=='low':
-            background_color='background-color: #ffcc1e'
-        elif val_lower=='used up':
-            background_color='background-color: #da0000'
-            text_color='color: #FFF'
-        return f"{background_color}; {text_color}"
+        if row['Block color'].lower() == "red":
+            background_color = 'background-color: #da0000'
+            text_color='color: #fff'
+        elif row['Block color'].lower() == 'orange':
+            background_color = 'background-color: #ff9966'
+        elif row['Block color'].lower() == 'gold':
+            background_color = 'background-color: #fbc315'
+        elif row['Block color'].lower() == 'yellow':
+            background_color = 'background-color: #faf28a'
+        elif row['Block color'].lower() == 'green':
+            background_color = 'background-color: #99d3a1'
+        elif row['Block color'].lower() == "teal":
+            background_color = 'background-color: #53ada3'
+        elif row['Block color'].lower() == "blue":
+            background_color = 'background-color: #afcae7'
+        elif row['Block color'].lower() == "purple":
+            background_color = 'background-color: #e78dd5'
+        elif row['Block color'].lower() == "pink":
+            background_color = 'background-color: #f6cad9'
+        elif row['Block color'].lower() == "gray":
+            background_color = 'background-color: #bdbdbd'
+        elif row['Block color'].lower() == "white":
+            background_color = 'background-color: #FFFFFF'
+        styles[list(row.index).index('Block label')]=f"{background_color}; {text_color}"
+        background_color=''
+        if row['Block status'].lower()=="uncut":
+            text_color='color: #808080'
+        elif row['Block status'].lower()=='cut':
+            text_color='color: #009900'
+        elif row['Block status'].lower()=='low':
+            text_color='color: #fa9b0f'
+        elif row['Block status'].lower()=='used up':
+            text_color='color: #da0000'
+        styles[list(row.index).index('Block status')]=f"{background_color}; {text_color}"
+        return styles
     
-    def case_info_display(row):
+    def case_info_card_display(row):    #for the case info block in the search by case page
         st.write(f"**Pt. {row.Case}**")
         st.write(f"**Primary Dx**: {row.Diagnosis}")
         st.write("Genetics:")
         st.write("Clinical Subtype:")
         st.write("Onset:")
-    # preparing all data from the Google Sheets document
-    full_list_of_lists = sheet_detail.get_all_values()[1:] #get all values from 'block details' sheet, remove header row ([0])
-    mainDataDF = pd.DataFrame(full_list_of_lists, columns=sheet_detail.row_values(1),index=None) #manually assign header values from Gsheet
+    
+    def make_list_sheet(sheet):     # Function to generate a df for codes to be used later. Sheet should always be sheet_codes!
+        list=sheet.get_values('A2:B73')
+        codes_list=[]
+        for item in list:
+            label_temp=item[1]
+            item_temp=[item[0][:2],item[0][2:4],label_temp]
+            codes_list.append(item_temp)
+        df=pd.DataFrame(codes_list,None,['Region','Code','Label'],)        
+        return(df)
+    
+    def region_filter(df,region:str,range1,range2):    #Function for the filter process: takes 3 pars from filter entry and returns filtered df
+        
+        # filtering the main df based on given parameters, should return df
+        match_list=[]    #An empty list that will be filled with codes to match
+        output=pd.DataFrame
+        if range2=='': #not a range filter, only filtering for a specific subcategory (child node)
+            match_range=[int(range1)]
+            #match_list=[f'{region}{range1}']    #only one code to match
+        else:
+            range1=int(range1)  #convert to ints for generating mathematical range
+            range2=int(range2)+1  #+1 to account for excluding upper lim
+            match_range=range(range1,range2)        #a list of ints between range1 and range 2                      
+        for entry in match_range:   #format the ints to be 2 digit str type
+            if entry==0:        #0 cannot undergo the log test, so singling it out here
+                code='00'
+            else:               # nonzero numbers can be tested with log for length
+                size_test=numpy.floor(numpy.log10(abs(entry)))+1    #returns 1 if (1-9), 2 if (10-99)
+                if size_test==1:    
+                    code=f'0{entry}'    # add a padding zero to single digits  
+                else:    
+                    code=str(entry)     # don't do anything to double digits, just convert to str
+            match_list.append(f'{region}{code}')    # cocatenate the letter code with the formatted number code to form the whole code, add it to the list
+        #print(match_range) For debugging
+        #print(match_list)
+        output=df[df['Region code'].isin(match_list)]   #find all rows whose code matches with the codes in the list, saved as a df
+        return(output)       # return the df of matching entries.
 
+    # preparing all data from the Google Sheets document
+    full_list_of_lists = sheet_detail.get_all_values() #get all values from 'block details' sheet, remove header row ([0])
+    mainDataDF = pd.DataFrame(full_list_of_lists[1:], columns=full_list_of_lists[0],index=None) #manually assign header values from Gsheet
+    #print(mainDataDF)
     diagnosis_index=[row[:2] for row in sheet_summary.get_all_values()[3:]]  # get diagnosis information from 'summary' sheet and Extract only the first two columns
     diagnosis_df = pd.DataFrame(diagnosis_index, columns=['Case', 'Diagnosis']) # Convert the list of lists to a DataFrame
     mainDataDF = pd.merge(mainDataDF, diagnosis_df, left_on='Case No.', right_on='Case', how='left') #merge the diagnosis information with the main data
@@ -135,7 +160,7 @@ else:
     padL,center, padR = st.columns([1, 3, 1])
     with center:
         st.markdown('''
-            # :brain: Ravits Lab FFPE Blocks Inventory  
+            # Ravits Lab FFPE Blocks Inventory  
             :blue-badge[Last Updated:2025-08-07] ''')
     st.divider()    
     c1,c2,c3,c4=st.columns([4,1, 1, 1])
@@ -168,7 +193,7 @@ else:
         def filter_region(arg: list):
             condition = []
             noMatch_flag = True
-                #condition= mainDataDF['Block name'].notna()  # Return a Series of True for all rows
+                #condition= mainDataDF['Block label'].notna()  # Return a Series of True for all rows
             if  any(re.search('[L,l]umb',item)for item in arg):
                 noMatch_flag=False
                 condition.append(r'[L,l]umb')
@@ -182,12 +207,12 @@ else:
                 noMatch_flag=False
                 condition.append(r'[Mm][Cc]|[Mm]otor.*[Cc].*[Tt].*[Xx]|^[RL]G.*')
             if noMatch_flag:
-                condition= mainDataDF['Block name'].notna()
+                condition= mainDataDF['Block label'].notna()
                 errorMsgContainer.markdown(f":red-badge[Filter '{arg}' is invalid or hasn't been implemented yet. Displaying all blocks.]")
                 return condition
             else:
                 regex = '|'.join(condition)
-            return  mainDataDF['Block name'].astype(str).str.contains(regex, case=False, regex=True,na=False)    
+            return  mainDataDF['Block label'].astype(str).str.contains(regex, case=False, regex=True,na=False)    
         
         
         st.markdown(''' ## Filters ''')
@@ -221,9 +246,7 @@ else:
         st.markdown(''' ## Blocks List ''')
 
         filtered_data = mainDataDF[filter_combined]
-        filtered_data_color = filtered_data.style\
-            .map(block_color_style, subset=['Block color'])\
-            .map(block_status_style, subset=['Block status'])
+        filtered_data_color = filtered_data.style.apply(conditional_cell_colors,axis=1)
    
         if len(filtered_data) == 0:
             st.markdown(f":red-badge[No blocks found for the selected filters.]")
@@ -237,7 +260,7 @@ else:
         st.dataframe(
             filtered_data_color,
             column_order=[
-                'Diagnosis','Block name', 'Case No.', 'Location', 'Block color', 'Block status','Notes'
+                'Diagnosis','Case No.', 'Region code','Block label', 'Location', 'Block status','Notes'
             ],
             height=1000,
             hide_index=True,
@@ -262,7 +285,7 @@ else:
             if caseNo_list:
                 for _, row in diagnosis_df[diagnosis_df['Case'].isin(caseNo_list)].iterrows():
                      with st.container(border=True):
-                        case_info_display(row)
+                        case_info_card_display(row)
 
             else:
                     st.markdown(":red-badge[Please select at least one Case No.]")    
@@ -275,14 +298,13 @@ else:
             else:
                 st.markdown(f":green-badge[Found {len(filtered_data)} blocks for Case No. {caseNo_list}]")
             with st.expander("Fold/Unfold list", expanded=True):
-                filtered_data_style = filtered_data.style\
-                    .map(block_color_style, subset=['Block color'])\
-                    .map(block_status_style, subset=['Block status'])
+                filtered_data_style = filtered_data.style.apply(conditional_cell_colors,axis=1)
+
                 
                 st.dataframe(
                     filtered_data_style,
                     column_order=[
-                        'Diagnosis','Block name', 'Case No.', 'Location', 'Block color', 'Block status','Notes'
+                        'Diagnosis', 'Case No.','Region code','Block label', 'Location', 'Block status','Notes'
                     ],
                     height=1000,
                     hide_index=True,
@@ -295,7 +317,7 @@ else:
             #    on_click="ignore",
             #    key="dl_2")
 
-    criterial_filter_tab, case_filter_tab =st.tabs(["Searcg by Criteria", "Look Up Cases"])
+    criterial_filter_tab, case_filter_tab =st.tabs(["Search by Criteria", "Look Up Cases"])
 
     with criterial_filter_tab:
         criteria_filter_main()
