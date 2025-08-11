@@ -22,7 +22,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'login_error' not in st.session_state:
     st.session_state.login_error = False
-st.session_state.logged_in=True #DELETE THIS WHEN COMMITING!!!!!!!!!!!!!!!
+#st.session_state.logged_in=True #DELETE THIS WHEN COMMITING!!!!!!!!!!!!!!!
 ###############################Show login form if not logged in##########################################
 if not st.session_state.logged_in:
     st.title("Login")
