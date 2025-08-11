@@ -2,7 +2,10 @@
 
 [theme]
 base="light"
-backgroundColor="#cbcedfff"
-primaryColor="rgba(89, 106, 253, 1)"
-textColor="#332d58"
+
+backgroundColor="#eceff4"
+secondaryBackgroundColor="#d8dee9"
+dataframeHeaderBackgroundColor="#fff"
+primaryColor="#2aa198"
+textColor="#6a7791"
 
