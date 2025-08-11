@@ -180,7 +180,7 @@ else:
     ########################################### Actual interface begins here ####################################################
 
     
-    colL,colR = st.columns([5, 1])
+    colL,colR = st.columns([6, 1])
     with colL:
         st.markdown('''# Ravits Lab FFPE Blocks Inventory''')
     with colR:
@@ -188,13 +188,16 @@ else:
     st.divider()    
     c1,c2,c3,c4=st.columns([4,1, 1, 1])
     c1.markdown('''
-        Web application for accessing the paraffin blocks inventory. All data here is pulled from the Google Sheets document.    
+        **Hello!**
+        This is a web-based dashboard for accessing the Ravits lab paraffin blocks inventory.    
         Please use the filter set below to crearte a list of blocks to include in an experiment.
+        **:primary[Make sure you update the spreadsheet if you are making any changes!]**
 
         ''')
     c2.metric(label="Total Blocks", value=len(mainDataDF), help="Total number of FFPE blocks in the inventory.",border=True)
     c3.metric(label="Total Cases", value=len(mainDataDF['Case No.'].unique()), help="Number of cases that have blocks the inventory.",border=True)
     c4.metric(label="Active Blocks", value=len(activeBlocks), help="Number of blocks that are removed from the inventory to be used in an experiment.",border=True)
+    
     c4.link_button(":material/link: Link to Spreadsheet",'https://docs.google.com/spreadsheets/d/18WNJFahK-IlF8yqIsYkL-yoB1Wyc4cO5uKeDngAkkXs/edit',type='primary')
     @st.fragment
     def criteria_filter_main():     #Wrapping all functions used in this module under the @frag
