@@ -84,46 +84,50 @@ else:
     if 'msg' not in st.session_state:
         Msg() 
     @st.fragment
-    def conditional_cell_colors(row):   #color cells based on block color and status
-        styles=['']*len(row)
-        text_color='color: #000'
-        background_color=''
-        if row['Block color'].lower() == "red":
-            background_color = 'background-color: #da0000'
-            text_color='color: #fff'
-        elif row['Block color'].lower() == 'orange':
-            background_color = 'background-color: #ff9966'
-        elif row['Block color'].lower() == 'gold':
-            background_color = 'background-color: #fbc315'
-        elif row['Block color'].lower() == 'yellow':
-            background_color = 'background-color: #faf28a'
-        elif row['Block color'].lower() == 'green':
-            background_color = 'background-color: #99d3a1'
-        elif row['Block color'].lower() == "teal":
-            background_color = 'background-color: #53ada3'
-        elif row['Block color'].lower() == "blue":
-            background_color = 'background-color: #afcae7'
-        elif row['Block color'].lower() == "purple":
-            background_color = 'background-color: #e78dd5'
-        elif row['Block color'].lower() == "pink":
-            background_color = 'background-color: #f6cad9'
-        elif row['Block color'].lower() == "gray":
-            background_color = 'background-color: #bdbdbd'
-        elif row['Block color'].lower() == "white":
-            background_color = 'background-color: #FFFFFF'
-        styles[list(row.index).index('Block label')]=f"{background_color}; {text_color}"
-        background_color=''
-        if row['Block status'].lower()=="uncut":
-            text_color='color: #808080'
-        elif row['Block status'].lower()=='cut':
-            text_color='color: #009900'
-        elif row['Block status'].lower()=='low':
-            text_color='color: #fa9b0f'
-        elif row['Block status'].lower()=='used up':
-            text_color='color: #da0000'
-        styles[list(row.index).index('Block status')]=f"{background_color}; {text_color}"
-        return styles
-    
+    def mainDF_styles(df):
+        def conditional_cell_colors(row):   #color cells based on block color and status
+            styles=['']*len(row)
+            text_color='color: #000'
+            background_color=''
+            if row['Block color'].lower() == "red":
+                background_color = 'background-color: #da0000'
+                text_color='color: #fff'
+            elif row['Block color'].lower() == 'orange':
+                background_color = 'background-color: #ff9966'
+            elif row['Block color'].lower() == 'gold':
+                background_color = 'background-color: #fbc315'
+            elif row['Block color'].lower() == 'yellow':
+                background_color = 'background-color: #faf28a'
+            elif row['Block color'].lower() == 'green':
+                background_color = 'background-color: #99d3a1'
+            elif row['Block color'].lower() == "teal":
+                background_color = 'background-color: #53ada3'
+            elif row['Block color'].lower() == "blue":
+                background_color = 'background-color: #afcae7'
+            elif row['Block color'].lower() == "purple":
+                background_color = 'background-color: #e78dd5'
+            elif row['Block color'].lower() == "pink":
+                background_color = 'background-color: #f6cad9'
+            elif row['Block color'].lower() == "gray":
+                background_color = 'background-color: #bdbdbd'
+            elif row['Block color'].lower() == "white":
+                background_color = 'background-color: #FFFFFF'
+            styles[list(row.index).index('Block label')]=f"{background_color}; {text_color}"
+            background_color=''
+            if row['Block status'].lower()=="uncut":
+                text_color='color: #808080'
+            elif row['Block status'].lower()=='cut':
+                text_color='color: #009900'
+            elif row['Block status'].lower()=='low':
+                text_color='color: #fa9b0f'
+            elif row['Block status'].lower()=='used up':
+                text_color='color: #da0000'
+            styles[list(row.index).index('Block status')]=f"{background_color}; {text_color}"
+            return styles
+        output=df.style.set_properties(**{'width':'10 px'},subset=['Region code'])   
+        output=df.style.apply(conditional_cell_colors,axis=1)
+        return output
+        
     @st.fragment
     def case_info_card_display(row):    #for the case info block in the search by case page
         st.write(f"**Pt. {row.Case}**")
@@ -171,6 +175,7 @@ else:
     mainDataDF.dropna(axis=0,subset='Diagnosis',inplace=True,) #remove rows with no Case No.
     mainDataDF['Active']=mainDataDF['Active']=='TRUE'
     activeBlocks = mainDataDF[mainDataDF['Active']==True]  
+    regions_dict=make_code_dict()
 
     ########################################### Actual interface begins here ####################################################
 
@@ -179,7 +184,7 @@ else:
     with colL:
         st.markdown('''# Ravits Lab FFPE Blocks Inventory''')
     with colR:
-        st.markdown(''':blue-badge[Last Updated:2025-08-10] ''')
+        st.markdown(''':blue-badge[Last Updated:2025-08-11] ''')
     st.divider()    
     c1,c2,c3,c4=st.columns([4,1, 1, 1])
     c1.markdown('''
@@ -190,7 +195,7 @@ else:
     c2.metric(label="Total Blocks", value=len(mainDataDF), help="Total number of FFPE blocks in the inventory.",border=True)
     c3.metric(label="Total Cases", value=len(mainDataDF['Case No.'].unique()), help="Number of cases that have blocks the inventory.",border=True)
     c4.metric(label="Active Blocks", value=len(activeBlocks), help="Number of blocks that are removed from the inventory to be used in an experiment.",border=True)
-    c4.link_button("Link to Spreadsheet",'https://docs.google.com/spreadsheets/d/18WNJFahK-IlF8yqIsYkL-yoB1Wyc4cO5uKeDngAkkXs/edit',type='primary')
+    c4.link_button(":material/link: Link to Spreadsheet",'https://docs.google.com/spreadsheets/d/18WNJFahK-IlF8yqIsYkL-yoB1Wyc4cO5uKeDngAkkXs/edit',type='primary')
     @st.fragment
     def criteria_filter_main():     #Wrapping all functions used in this module under the @frag
         @st.fragment
@@ -257,7 +262,6 @@ else:
             code_name=regions_dict[key]
             return(f'[{code_name['Region']}{code_name['Code']}] {code_name['Label']}')    
         
-        regions_dict=make_code_dict()
         diagnosis_list=["Control", "sALS", "fALS"]
         
         CritC1, CritC2 = st.columns([1, 3])
@@ -278,6 +282,7 @@ else:
                     "Region Selection Method",
                     ['Multiselect menu','Region code (Dev)'],
                     captions=['Use a dropdown menu to click all the regions you want to select','Look up a numerical code range under ONE letter code.'],
+                    help='',
                     horizontal=True                
                 ) 
                 #multiselect menu                               
@@ -286,7 +291,9 @@ else:
                     region_selected=region_menu_container.multiselect(
                         "Anatomical Regions",
                         regions_dict,
-                        format_func=menu_option_formatter)
+                        format_func=menu_option_formatter,
+                        help='Select all the anatomical regions you are interested in. Leaving it empty to include all regions. '
+                        )
                 #code menu
                 elif region_menu_type=='Region code (Dev)':
                     with region_menu_container:
@@ -294,6 +301,9 @@ else:
                         code_selected=st.text_input('Region code',value='',help='Separate each element by comma. Format: \"CR,00\" if looking for single region. \"CR, 00, 99\" if looking for a range.')             
                 active_toggle=st.checkbox("Show only active blocks")
                 filters_submit=st.form_submit_button('Search',type='primary')
+                
+            with st.expander("Region code reference chart",expanded=False):
+                st.dataframe(pd.DataFrame.from_dict(regions_dict,orient='index'),hide_index=True)    
         if filters_submit:  #create the final filter used to query the DF once the form is submitted
             if region_menu_type=='Multiselect menu':
                 filter_combined = diagnosis_filter(diag_list) & region_filter_menu(regions_dict,region_selected) # Combine filters
@@ -303,15 +313,18 @@ else:
                 filter_combined=filter_combined & mainDataDF['Active']==True
         with CritC2:
             st.markdown(''' ### Blocks List ''')
+            df_container=st.empty()
+            df_container.write('''Enter a search critera...''')    
             if filters_submit:
                 filtered_data = mainDataDF[filter_combined]        
                 if len(filtered_data) == 0:
                     st.markdown(f":red-badge[No blocks found for the selected filters.]")
                 else:
                     st.markdown(f":green-badge[Found {len(filtered_data)} blocks.]")
-                    filtered_data_style = filtered_data.style.apply(conditional_cell_colors,axis=1)
+                    filtered_data_style =mainDF_styles(filtered_data)
                     with st.spinner(text="Loading...",show_time=True):
-                        df_style(filtered_data_style)
+                        with df_container:
+                            df_style(filtered_data_style)
                     #st.download_button(
                     #    "Download List",
                     #    data=filtered_data.to_csv(index=False).encode('utf-8'),
@@ -330,7 +343,11 @@ else:
                     default=None
                 )
                 active_toggle=st.checkbox("Show only active blocks")
-                st.form_submit_button('Search',type='primary')
+                filters_submit=st.form_submit_button('Search',type='primary')
+                with st.expander("Region code reference chart",expanded=False):
+                    st.dataframe(pd.DataFrame.from_dict(regions_dict,orient='index'),hide_index=True)    
+
+        if filters_submit:
             if caseNo_list:
                 st.markdown('''### Case Info''')
                 for _, row in diagnosis_df[diagnosis_df['Case'].isin(caseNo_list)].iterrows():
@@ -338,21 +355,26 @@ else:
                         case_info_card_display(row)
 
             else:
-                    st.markdown(":red-badge[Please select at least one Case No.]")    
-        filter=mainDataDF['Case No.'].isin(caseNo_list)    
-        if active_toggle==True:
-            filter=filter & mainDataDF['Active']==True
+                    st.markdown(":red-badge[Please select at least one case .]")    
+        
         with caseC2:
-            st.markdown(''' ## Blocks List ''')
-            filtered_data = mainDataDF[filter]
+            st.markdown(''' ### Blocks List ''')
             DLButton_Container = st.empty()
-            if len(filtered_data) == 0:
-                st.markdown(f":red-badge[No blocks found for Case No. {caseNo_list}]")
-            else:
-                st.markdown(f":green-badge[Found {len(filtered_data)} blocks for Case No. {caseNo_list}]")
-                filtered_data_style = filtered_data.style.apply(conditional_cell_colors,axis=1)
-                with st.spinner(text="Loading...",show_time=True):
-                    df_style(filtered_data_style)
+            df_container=st.empty()
+            df_container.write('''Enter a search critera...''')
+            if filters_submit:
+                filter=mainDataDF['Case No.'].isin(caseNo_list)    
+                if active_toggle==True:
+                    filter=filter & mainDataDF['Active']==True    
+                filtered_data = mainDataDF[filter]
+                if len(filtered_data) == 0:
+                    st.markdown(f":red-badge[No blocks found for Case No. {caseNo_list}]")
+                else:
+                    st.markdown(f":green-badge[Found {len(filtered_data)} blocks for Case No. {caseNo_list}]")
+                    filtered_data_style = mainDF_styles(filtered_data)
+                    with st.spinner(text="Loading...",show_time=True):
+                        with df_container:
+                            df_style(filtered_data_style)
             #DLButton_Container.download_button(
             #    "Download List",
             #    data=filtered_data.to_csv(index=False).encode('utf-8'),
