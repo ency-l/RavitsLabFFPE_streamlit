@@ -191,6 +191,7 @@ else:
         **Hello!**
         This is a web-based dashboard for accessing the Ravits lab paraffin blocks inventory.    
         Please use the filter set below to crearte a list of blocks to include in an experiment.
+        
         **:primary[Make sure you update the spreadsheet if you are making any changes!]**
 
         ''')
