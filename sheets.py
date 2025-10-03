@@ -21,7 +21,6 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'login_error' not in st.session_state:
     st.session_state.login_error = False
-st.session_state.logged_in=True #DELETE THIS WHEN COMMITING!!!!!!!!!!!!!!!
 ###############################Show login form if not logged in##########################################
 if not st.session_state.logged_in:
     st.title("Login")
@@ -175,7 +174,7 @@ else:
     with colL:
         st.markdown('''# Ravits Lab FFPE Blocks Inventory''')
     with colR:
-        st.markdown(''':blue-badge[Last Updated:2025-08-11] ''')
+        st.markdown(''':blue-badge[Last Updated:2025-10-02] ''')
     st.divider()    
     c1,c2,c3,c4=st.columns([4,1, 1, 1])
     c1.markdown('''
