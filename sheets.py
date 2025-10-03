@@ -4,7 +4,6 @@ import pandas as pd
 import numpy
 import bcrypt
 import re
-import gspread
 from streamlit_gsheets import GSheetsConnection
 st.set_page_config(
             page_title="Sheets",
@@ -22,7 +21,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'login_error' not in st.session_state:
     st.session_state.login_error = False
-#st.session_state.logged_in=True #DELETE THIS WHEN COMMITING!!!!!!!!!!!!!!!
+st.session_state.logged_in=True #DELETE THIS WHEN COMMITING!!!!!!!!!!!!!!!
 ###############################Show login form if not logged in##########################################
 if not st.session_state.logged_in:
     st.title("Login")
@@ -47,17 +46,11 @@ if not st.session_state.logged_in:
 ################################Show main interface if logged in##########################################
 else:
     with st.spinner("Connecting to Google Sheets..."):  #connect to Gsheets and fetch data
-        #scope = [ 'https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive' ]      
-        #service_account_info = st.secrets["gcp_service_account"]
-        #client = gspread.service_account_from_dict(dict(service_account_info))
-        from pathlib import Path
-       # conn = st.connection("ffpe_gsheets", type=GSheetsConnection)        
-        client = gspread.service_account(filename=Path('.streamlit/ravits-lab-paraffin-blocks-e254d6aa1b19.json')) # type: ignore
-        sheet = client.open("Ravits Lab Paraffin Blocks Inventory")
-        sheet_guide = sheet.get_worksheet(0)
-        sheet_summary=sheet.get_worksheet(1)
-        sheet_detail= sheet.get_worksheet(2)
-        sheet_code=sheet.get_worksheet(3)
+        conn = st.connection("gsheets", type=GSheetsConnection)        
+        sheet_guide = conn.read(worksheet=0)
+        sheet_summary=conn.read(worksheet=1)
+        sheet_detail= conn.read(worksheet=2)
+        sheet_code=conn.read(worksheet=3)
     ################################## Initializing global funcs and  pre-processing data  ############################################
     
     @st.dialog('Message',width='large')
@@ -89,38 +82,38 @@ else:
             styles=['']*len(row)
             text_color='color: #000'
             background_color=''
-            if row['Block color'].lower() == "red":
+            if str(row['Block color']).lower() == "red":
                 background_color = 'background-color: #da0000'
                 text_color='color: #fff'
-            elif row['Block color'].lower() == 'orange':
+            elif str(row['Block color']).lower() == 'orange':
                 background_color = 'background-color: #ff9966'
-            elif row['Block color'].lower() == 'gold':
+            elif str(row['Block color']).lower() == 'gold':
                 background_color = 'background-color: #fbc315'
-            elif row['Block color'].lower() == 'yellow':
+            elif str(row['Block color']).lower() == 'yellow':
                 background_color = 'background-color: #faf28a'
-            elif row['Block color'].lower() == 'green':
+            elif str(row['Block color']).lower() == 'green':
                 background_color = 'background-color: #99d3a1'
-            elif row['Block color'].lower() == "teal":
+            elif str(row['Block color']).lower() == "teal":
                 background_color = 'background-color: #53ada3'
-            elif row['Block color'].lower() == "blue":
+            elif str(row['Block color']).lower() == "blue":
                 background_color = 'background-color: #afcae7'
-            elif row['Block color'].lower() == "purple":
+            elif str(row['Block color']).lower() == "purple":
                 background_color = 'background-color: #e78dd5'
-            elif row['Block color'].lower() == "pink":
+            elif str(row['Block color']).lower() == "pink":
                 background_color = 'background-color: #f6cad9'
-            elif row['Block color'].lower() == "gray":
+            elif str(row['Block color']).lower() == "gray":
                 background_color = 'background-color: #bdbdbd'
-            elif row['Block color'].lower() == "white":
+            elif str(row['Block color']).lower() == "white":
                 background_color = 'background-color: #FFFFFF'
             styles[list(row.index).index('Block label')]=f"{background_color}; {text_color}"
             background_color=''
-            if row['Block status'].lower()=="uncut":
+            if str(row['Block status']).lower()=="uncut":
                 text_color='color: #808080'
-            elif row['Block status'].lower()=='cut':
+            elif str(row['Block status']).lower()=='cut':
                 text_color='color: #009900'
-            elif row['Block status'].lower()=='low':
+            elif str(row['Block status']).lower()=='low':
                 text_color='color: #fa9b0f'
-            elif row['Block status'].lower()=='used up':
+            elif str(row['Block status']).lower()=='used up':
                 text_color='color: #da0000'
             styles[list(row.index).index('Block status')]=f"{background_color}; {text_color}"
             return styles
@@ -138,18 +131,19 @@ else:
 
     @st.fragment
     def make_code_dict():     # Function to generate a dict from sheet_codes to be used later.
-        list=sheet_code.get_values('A2:B73')
+        df=sheet_code
         codes_list=[]
-        for item in list:
-            label_temp=item[1]
-            item_temp=[item[0][:2],item[0][2:4],label_temp]
-            codes_list.append(item_temp)
-        #df=pd.DataFrame(codes_list,None,['Region','Code','Label'],)
-        #output=df.to_dict(orient='index')           # the dict is formatted as: {1:{Region:'CR', Code:'00', Label:''}, 2:{}....}
+        for _,row in df.iterrows():
+            temp_label=row.iloc[1]
+            temp_region=row.iloc[0][:2]
+            temp_code=row.iloc[0][2:4]
+            row_temp=[temp_region,temp_code,temp_label]
+            codes_list.append(row_temp)
         output={
             i:{'Region': sublist[0], 'Code': sublist[1], 'Label': sublist[2]}
             for i,sublist in enumerate(codes_list,1)
         }
+        # the dict is formatted as: {1:{Region:'CR', Code:'00', Label:''}, 2:{}....}
         return(output)
     
     @st.fragment
@@ -165,18 +159,15 @@ else:
                     #selection_mode='multi-row',
                 ))
     # preparing all data from the Google Sheets document
-    full_list_of_lists = sheet_detail.get_all_values() #get all values from 'block details' sheet, remove header row ([0])
-    mainDataDF = pd.DataFrame(full_list_of_lists[1:], columns=full_list_of_lists[0],index=None) #manually assign header values from Gsheet
-    #print(mainDataDF)
-    diagnosis_index=[row[:2] for row in sheet_summary.get_all_values()[3:]]  # get diagnosis information from 'summary' sheet and Extract only the first two columns
-    diagnosis_df = pd.DataFrame(diagnosis_index, columns=['Case', 'Diagnosis']) # Convert the list of lists to a DataFrame
-    mainDataDF = pd.merge(mainDataDF, diagnosis_df, left_on='Case No.', right_on='Case', how='left') #merge the diagnosis information with the main data
+    diagnosis_df = sheet_summary.iloc[3:, :2]
+    diagnosis_df.columns = ['Case', 'Diagnosis'] 
+    mainDataDF = pd.merge(sheet_detail, diagnosis_df, left_on='Case No.', right_on='Case', how='left') #merge the diagnosis information with the main data
     mainDataDF.drop(columns=['Case'], inplace=True) #remove duplicate 'Case' column
     mainDataDF.dropna(axis=0,subset='Diagnosis',inplace=True,) #remove rows with no Case No.
     mainDataDF['Active']=mainDataDF['Active']=='TRUE'
     activeBlocks = mainDataDF[mainDataDF['Active']==True]  
     regions_dict=make_code_dict()
-
+    
     ########################################### Actual interface begins here ####################################################
 
     
@@ -229,7 +220,6 @@ else:
                 output=pd.DataFrame
                 if range2=='': #not a range filter, only filtering for a specific subcategory (child node)
                     match_range=[int(range1)]
-                    #match_list=[f'{region}{range1}']    #only one code to match
                 else:
                     range1=int(range1)  #convert to ints for generating mathematical range
                     range2=int(range2)+1  #+1 to account for excluding upper lim
@@ -244,8 +234,8 @@ else:
                         else:    
                             code=str(entry)     # don't do anything to double digits, just convert to str
                     match_list.append(f'{region}{code}')    # cocatenate the letter code with the formatted number code to form the whole code, add it to the list
-                #print(match_range) For debugging
-                #print(match_list)
+                print(match_range) #For debugging
+                print(match_list)
                 output=mainDataDF['Region code'].isin(match_list)   #create a logic statement that can be used to filter selected categories
                 return(output)       # return the the filter logic statement (to be combined with other filters)
         @st.fragment
@@ -267,7 +257,7 @@ else:
             return(f'[{code_name['Region']}{code_name['Code']}] {code_name['Label']}')    
         
         diagnosis_list=["Control", "sALS", "fALS"]
-        
+        err_flag=False
         CritC1, CritC2 = st.columns([1, 3])
         with CritC1:
             st.markdown(''' ### Filters ''')
@@ -301,7 +291,6 @@ else:
                 #code menu
                 elif region_menu_type=='Region code (Dev)':
                     with region_menu_container:
-                        #region=st.pills('Region letter code',['CR','SS','LS','BS','CL','SC','MI'])
                         code_selected=st.text_input('Region code',value='',help='Separate each element by comma. Format: \"CR,00\" if looking for single region. \"CR, 00, 99\" if looking for a range.')             
                 active_toggle=st.checkbox("Show only active blocks")
                 filters_submit=st.form_submit_button('Search',type='primary')
@@ -312,19 +301,25 @@ else:
             if region_menu_type=='Multiselect menu':
                 filter_combined = diagnosis_filter(diag_list) & region_filter_menu(regions_dict,region_selected) # Combine filters
             else:
-                filter_combined= diagnosis_filter(diag_list) & region_filter_code(code_selected)
+                try:
+                    filter_combined= diagnosis_filter(diag_list) & region_filter_code(code_selected)
+                except:    
+                    err_flag=True
             if active_toggle==True:
                 filter_combined=filter_combined & mainDataDF['Active']==True
         with CritC2:
             st.markdown(''' ### Blocks List ''')
+            summary_container = st.empty()
             df_container=st.empty()
-            df_container.write('''Enter a search critera...''')    
+            df_container.write('''Enter a search critera...''')
+            if err_flag==True:
+                df_container.markdown(f":red-badge[Error in region code input. Please make sure the format is correct.]")    
             if filters_submit:
                 filtered_data = mainDataDF[filter_combined]        
                 if len(filtered_data) == 0:
-                    st.markdown(f":red-badge[No blocks found for the selected filters.]")
+                    df_container.markdown(f":red-badge[No blocks found for the selected filters.]")
                 else:
-                    st.markdown(f":green-badge[Found {len(filtered_data)} blocks.]")
+                    summary_container.markdown(f":green-badge[Found {len(filtered_data)} blocks.]")
                     filtered_data_style =mainDF_styles(filtered_data)
                     with st.spinner(text="Loading...",show_time=True):
                         with df_container:
@@ -350,20 +345,19 @@ else:
                 filters_submit=st.form_submit_button('Search',type='primary')
                 with st.expander("Region code reference chart",expanded=False):
                     st.dataframe(pd.DataFrame.from_dict(regions_dict,orient='index'),hide_index=True)    
-
-        if filters_submit:
-            if caseNo_list:
-                st.markdown('''### Case Info''')
-                for _, row in diagnosis_df[diagnosis_df['Case'].isin(caseNo_list)].iterrows():
-                     with st.container(border=True):
-                        case_info_card_display(row)
-
-            else:
-                    st.markdown(":red-badge[Please select at least one case .]")    
+            if filters_submit:
+                st.markdown('''### Case Info''')                     
+                with st.container(border=True):
+                    if caseNo_list:
+                        for _, row in diagnosis_df[diagnosis_df['Case'].isin(caseNo_list)].iterrows():
+                            case_info_card_display(row)
+                    else:
+                        st.markdown(":red-badge[No case selceted.]")    
         
         with caseC2:
             st.markdown(''' ### Blocks List ''')
             DLButton_Container = st.empty()
+            summary_container = st.empty()
             df_container=st.empty()
             df_container.write('''Enter a search critera...''')
             if filters_submit:
@@ -372,9 +366,10 @@ else:
                     filter=filter & mainDataDF['Active']==True    
                 filtered_data = mainDataDF[filter]
                 if len(filtered_data) == 0:
-                    st.markdown(f":red-badge[No blocks found for Case No. {caseNo_list}]")
+                    with df_container:
+                        st.markdown(f":red-badge[No blocks found for Case No. {caseNo_list}]")
                 else:
-                    st.markdown(f":green-badge[Found {len(filtered_data)} blocks for Case No. {caseNo_list}]")
+                    summary_container.markdown(f":green-badge[Found {len(filtered_data)} blocks for Case No. {caseNo_list}]")
                     filtered_data_style = mainDF_styles(filtered_data)
                     with st.spinner(text="Loading...",show_time=True):
                         with df_container:
